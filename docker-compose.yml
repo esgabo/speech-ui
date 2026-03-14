@@ -1,0 +1,9 @@
+services:
+  speech-ui:
+    build: .
+    container_name: speech-ui
+    restart: unless-stopped
+    ports:
+      - "8888:80"
+    labels:
+      - "com.dokploy.app=speech-ui"
