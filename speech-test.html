@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speech Node Tester</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 900px;
+      width: 100%;
+      padding: 40px;
+    }
+    h1 { color: #333; margin-bottom: 10px; text-align: center; }
+    .subtitle { text-align: center; color: #666; margin-bottom: 30px; font-size: 14px; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 30px;
+    }
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .section {
+      padding: 25px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    .section.tts { border-left-color: #764ba2; }
+    h2 { font-size: 18px; color: #333; margin-bottom: 20px; }
+    .button-group { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      background: #667eea;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    button:hover { background: #5568d3; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4); }
+    button:active { transform: translateY(0); }
+    button:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+    button.recording { background: #e74c3c; animation: pulse 1.5s infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    button.secondary { background: #764ba2; }
+    button.secondary:hover { background: #653a8a; }
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 80px;
+      margin-bottom: 10px;
+    }
+    textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+    .output {
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 15px;
+      min-height: 60px;
+      word-wrap: break-word;
+      border: 1px solid #e0e0e0;
+    }
+    .output.empty { color: #999; font-style: italic; }
+    .status {
+      font-size: 13px;
+      color: #666;
+      margin-top: 10px;
+      padding: 10px;
+      background: white;
+      border-radius: 4px;
+      border-left: 3px solid #667eea;
+    }
+    .status.error { background: #fee; color: #c33; border-left-color: #c33; }
+    .status.success { background: #efe; color: #363; border-left-color: #363; }
+    .status.loading { background: #eef; color: #336; border-left-color: #336; }
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #1565c0;
+      margin-bottom: 20px;
+    }
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #667eea;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    select {
+      padding: 8px;
+      border: 2px solid #e0e0e0;
+      border-radius: 4px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+    }
+    select:focus { outline: none; border-color: #764ba2; }
+    .footer {
+      text-align: center;
+      color: #999;
+      font-size: 12px;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+    .config-section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    .config-section h3 { font-size: 14px; color: #333; margin-bottom: 10px; }
+    .config-group { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+    .config-group label { font-size: 13px; color: #666; }
+    input[type="text"] {
+      flex: 1;
+      min-width: 150px;
+      padding: 8px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    input[type="text"]:focus { outline: none; border-color: #667eea; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎤 Speech Node Tester</h1>
+    <p class="subtitle">Test Whisper (STT) and CoquiTTS (TTS) services</p>
+
+    <div class="config-section">
+      <h3>⚙️ Configuration</h3>
+      <div class="config-group">
+        <label>Whisper API:</label>
+        <input type="text" id="whisperUrl" value="http://speech.lan:8000" placeholder="Whisper API URL">
+      </div>
+      <div class="config-group">
+        <label>TTS API:</label>
+        <input type="text" id="ttsUrl" value="http://speech.lan:5002" placeholder="TTS API URL">
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Speech-to-Text Section -->
+      <div class="section">
+        <h2>📝 Speech to Text (Whisper)</h2>
+        <div class="info-box">
+          Click "Start Recording" to record audio, then "Stop &amp; Transcribe" to send it to Whisper API.
+        </div>
+        <div class="button-group">
+          <button id="recordBtn" onclick="startRecording()">🔴 Start Recording</button>
+          <button id="stopBtn" onclick="stopRecording()" disabled>⏹️ Stop &amp; Transcribe</button>
+          <button id="clearTranscriptBtn" onclick="clearTranscript()" class="secondary">Clear</button>
+        </div>
+        <div id="transcriptStatus" class="status empty">Ready to record...</div>
+        <div class="output" id="transcript">
+          <span style="color: #999; font-style: italic;">Transcription will appear here...</span>
+        </div>
+      </div>
+
+      <!-- Text-to-Speech Section -->
+      <div class="section tts">
+        <h2>🔊 Text to Speech (TTS)</h2>
+        <div class="info-box">
+          Type text below, choose a speaker, then click "Synthesize" to hear it!
+        </div>
+        <textarea id="ttsText" placeholder="Enter text to synthesize...">Hello, this is a test of the Text-to-Speech service!</textarea>
+        <div class="config-group">
+          <label>Speaker:</label>
+          <select id="speaker">
+            <option value="male-en-2">Male (EN)</option>
+            <option value="female-en-5">Female (EN)</option>
+            <option value="female-pt-4">Female (PT-BR)</option>
+          </select>
+        </div>
+        <div class="button-group">
+          <button id="synthesizeBtn" onclick="synthesize()" class="secondary">🎤 Synthesize</button>
+          <button id="playBtn" onclick="playAudio()" disabled class="secondary">▶️ Play</button>
+          <button id="downloadBtn" onclick="downloadAudio()" disabled class="secondary">⬇️ Download</button>
+        </div>
+        <div id="ttsStatus" class="status empty">Ready to synthesize...</div>
+        <audio id="audioPlayer" style="width: 100%; margin-top: 15px;"></audio>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>Speech Node • Whisper + CoquiTTS • GPU-Accelerated</p>
+    </div>
+  </div>
+
+  <script>
+    let mediaRecorder;
+    let audioChunks = [];
+    let audioData = null;
+
+    async function startRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          audioChunks.push(event.data);
+        };
+
+        mediaRecorder.start();
+        document.getElementById('recordBtn').disabled = true;
+        document.getElementById('recordBtn').classList.add('recording');
+        document.getElementById('stopBtn').disabled = false;
+        document.getElementById('transcriptStatus').textContent = '🔴 Recording...';
+        document.getElementById('transcriptStatus').className = 'status loading';
+      } catch (err) {
+        setTranscriptStatus('Error accessing microphone: ' + err.message, 'error');
+      }
+    }
+
+    async function stopRecording() {
+      if (!mediaRecorder) return;
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        await transcribeAudio(audioBlob);
+      };
+
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      document.getElementById('recordBtn').disabled = false;
+      document.getElementById('recordBtn').classList.remove('recording');
+      document.getElementById('stopBtn').disabled = true;
+      document.getElementById('transcriptStatus').textContent = '⏳ Sending to Whisper...';
+      document.getElementById('transcriptStatus').className = 'status loading';
+    }
+
+    async function transcribeAudio(audioBlob) {
+      try {
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'audio.wav');
+        formData.append('language', 'en');
+
+        const whisperUrl = document.getElementById('whisperUrl').value;
+        const response = await fetch(`${whisperUrl}/v1/audio/transcriptions`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        document.getElementById('transcript').textContent = data.text;
+        setTranscriptStatus('✅ Transcription complete!', 'success');
+      } catch (err) {
+        setTranscriptStatus('Error: ' + err.message, 'error');
+      }
+    }
+
+    function clearTranscript() {
+      document.getElementById('transcript').innerHTML = '<span style="color: #999; font-style: italic;">Transcription will appear here...</span>';
+      document.getElementById('transcriptStatus').textContent = 'Cleared';
+      document.getElementById('transcriptStatus').className = 'status';
+    }
+
+    async function synthesize() {
+      const text = document.getElementById('ttsText').value.trim();
+      if (!text) {
+        setTtsStatus('Please enter some text', 'error');
+        return;
+      }
+
+      try {
+        document.getElementById('synthesizeBtn').disabled = true;
+        document.getElementById('playBtn').disabled = true;
+        document.getElementById('downloadBtn').disabled = true;
+        document.getElementById('synthesizeBtn').innerHTML = '<span class="spinner"></span>Synthesizing...';
+        setTtsStatus('⏳ Generating audio...', 'loading');
+
+        const ttsUrl = document.getElementById('ttsUrl').value;
+        const speaker = document.getElementById('speaker').value;
+        const response = await fetch(`${ttsUrl}/v1/audio/speech`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: text, speaker: speaker, language: 'en' })
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const blob = await response.blob();
+        audioData = blob;
+        const url = URL.createObjectURL(blob);
+        document.getElementById('audioPlayer').src = url;
+        document.getElementById('synthesizeBtn').innerHTML = '🎤 Synthesize';
+        document.getElementById('synthesizeBtn').disabled = false;
+        document.getElementById('playBtn').disabled = false;
+        document.getElementById('downloadBtn').disabled = false;
+        setTtsStatus('✅ Audio ready to play!', 'success');
+      } catch (err) {
+        document.getElementById('synthesizeBtn').innerHTML = '🎤 Synthesize';
+        document.getElementById('synthesizeBtn').disabled = false;
+        setTtsStatus('Error: ' + err.message, 'error');
+      }
+    }
+
+    function playAudio() {
+      const audio = document.getElementById('audioPlayer');
+      if (audio.src) audio.play();
+    }
+
+    function downloadAudio() {
+      if (!audioData) return;
+      const url = URL.createObjectURL(audioData);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'speech.wav';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function setTranscriptStatus(message, type = '') {
+      const el = document.getElementById('transcriptStatus');
+      el.textContent = message;
+      el.className = 'status ' + type;
+    }
+
+    function setTtsStatus(message, type = '') {
+      const el = document.getElementById('ttsStatus');
+      el.textContent = message;
+      el.className = 'status ' + type;
+    }
+
+    // Test connectivity on page load
+    window.addEventListener('load', async () => {
+      const whisperUrl = document.getElementById('whisperUrl').value;
+      const ttsUrl = document.getElementById('ttsUrl').value;
+      try {
+        const whisperHealth = await fetch(`${whisperUrl}/health`).then(r => r.ok);
+        const ttsHealth = await fetch(`${ttsUrl}/health`).then(r => r.ok);
+        if (whisperHealth && ttsHealth) {
+          setTranscriptStatus('✅ Connected to Whisper', 'success');
+          setTtsStatus('✅ Connected to TTS', 'success');
+        } else {
+          setTranscriptStatus('⚠️ Connection check failed', 'error');
+          setTtsStatus('⚠️ Connection check failed', 'error');
+        }
+      } catch (err) {
+        setTranscriptStatus('⚠️ Cannot connect to Whisper API', 'error');
+        setTtsStatus('⚠️ Cannot connect to TTS API', 'error');
+      }
+    });
+  </script>
+</body>
+</html>
