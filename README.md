@@ -7,7 +7,8 @@ Deployed on Delivery VM via Dokploy (Nixpacks). Calls APIs on Speech LXC (192.16
 ## Access
 
 ```
-http://delivery.lan:3000/speech-test.html      (local)
+http://speech-test.traefik.me                  (current)
+http://delivery.lan:3000                       (local)
 https://speech-ui.hlab.codepilot.cl            (via NPM, once configured)
 ```
 
