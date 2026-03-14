@@ -221,6 +221,10 @@
     let audioData = null;
 
     async function startRecording() {
+      if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+        setTranscriptStatus('⚠️ Microphone access requires HTTPS. Open this app via https:// to enable recording.', 'error');
+        return;
+      }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
@@ -353,6 +357,10 @@
 
     // Test connectivity on page load
     window.addEventListener('load', async () => {
+      if (!window.isSecureContext) {
+        setTranscriptStatus('⚠️ HTTPS required for microphone access. Recording is disabled on HTTP.', 'error');
+      }
+
       const whisperUrl = document.getElementById('whisperUrl').value;
       const ttsUrl = document.getElementById('ttsUrl').value;
       try {
